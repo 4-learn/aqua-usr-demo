@@ -19,8 +19,8 @@ PONDS = [
     {"name": "3 號池", "species": "白蝦", "description": "去年底新挖的池"},
 ]
 
-# 一池產生最近 14 天的讀值，每天 4 筆（早/午/傍晚/夜）。
-DAYS_BACK = 14
+# 一池產生最近 30 天的讀值，每天 4 筆（早/午/傍晚/夜）。
+DAYS_BACK = 30
 READINGS_PER_DAY = 4
 
 
