@@ -9,6 +9,7 @@
 
 from datetime import timedelta
 
+from django.db.models import Avg
 from django.utils import timezone
 
 from water.models import Pond, SensorReading
@@ -38,6 +39,27 @@ def get_latest_water_quality(pond_name: str) -> dict:
         "ph": latest.ph,
         "dissolved_oxygen_mg_l": latest.dissolved_oxygen,
         "salinity_ppt": latest.salinity,
+    }
+
+
+def get_average_do(pond_name: str, days: int = 7) -> dict:
+    """指定養殖池最近 N 天的平均溶氧（mg/L）。
+
+    Session 1 變化題：老師示範「加新 function」用的範例 — 看平均才看得出趨勢。
+    """
+    try:
+        pond = Pond.objects.get(name=pond_name)
+    except Pond.DoesNotExist:
+        return {"error": f"找不到 `{pond_name}`"}
+
+    since = timezone.now() - timedelta(days=days)
+    avg = pond.readings.filter(measured_at__gte=since).aggregate(
+        avg_do=Avg("dissolved_oxygen")
+    )
+    return {
+        "pond": pond.name,
+        "days": days,
+        "average_dissolved_oxygen_mg_l": round(avg["avg_do"] or 0, 2),
     }
 
 
@@ -84,6 +106,27 @@ TOOL_SCHEMAS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_average_do",
+            "description": "查指定養殖池最近 N 天的平均溶氧（mg/L）。看趨勢比看單筆讀值更有用。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pond_name": {
+                        "type": "string",
+                        "description": "池塘名稱，例如：1 號池",
+                    },
+                    "days": {
+                        "type": "integer",
+                        "description": "要算幾天平均，預設 7",
+                    },
+                },
+                "required": ["pond_name"],
+            },
+        },
+    },
     # 🚧 TODO Session 2：學員加完上面的 function 之後，這裡也要加對應的 schema。
     # 範本：
     # {
@@ -104,6 +147,7 @@ TOOL_SCHEMAS = [
 # 把 tool name 對應到實際函數
 _TOOL_REGISTRY = {
     "get_latest_water_quality": get_latest_water_quality,
+    "get_average_do": get_average_do,
     # 🚧 TODO Session 2：加新 function 後也要在這裡註冊。
 }
 
